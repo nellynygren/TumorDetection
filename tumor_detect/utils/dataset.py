@@ -351,6 +351,25 @@ class FutureFramePredictorDataset(VisionDataset):
         #sequence_batch.append(last_image_id)  
         return sequence
     
+class TumorDataset(torch.utils.data.Dataset):
+    def __init__(self, image_dir, label_dir, transforms=None):
+        self.image_dir = image_dir
+        self.label_dir = label_dir
+        self.transforms = transforms
+        
+        # Only pick out images that have a corresponding label
+        images = [os.path.join(dp,f,'.jpg') for dp, dn, fn in os.walk(os.path.expanduser(label_dir[0:-4])) for f in fn if f.endswith(".txt")]
+        labels = [os.path.join(dp,f) for dp, dn, fn in os.walk(os.path.expanduser(label_dir)) for f in fn if f.endswith(".txt")]
+        
+        self.classes = [
+            'tumor',
+            'background']
+    
+    def __getitem__(self,index)
+        img = imageio.imread(self.images[index])
+        
+        
+        
 class CocoDataset(torch.utils.data.Dataset):
     def __init__(self, root, annotation, transforms=None):
         self.root = root
