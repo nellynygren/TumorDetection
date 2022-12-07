@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
 import torchvision
+import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -562,7 +563,7 @@ class MultiBoxLoss(nn.Module):
         batch_size = predicted_locs.size(0)
         n_priors = self.priors_cxcy.size(0)
         n_classes = predicted_scores.size(2)
-
+        
         assert n_priors == predicted_locs.size(1) == predicted_scores.size(1)
 
         true_locs = torch.zeros((batch_size, n_priors, 4), dtype=torch.float).to(device)  # (N, 8732, 4)
@@ -588,6 +589,7 @@ class MultiBoxLoss(nn.Module):
 
             # Then, assign each object to the corresponding maximum-overlap-prior. (This fixes 1.)
             object_for_each_prior[prior_for_each_object] = torch.LongTensor(range(n_objects)).to(device)
+            #print(object_for_each_prior.max())
 
             # To ensure these priors qualify, artificially give them an overlap of greater than 0.5. (This fixes 2.)
             overlap_for_each_prior[prior_for_each_object] = 1.
@@ -599,15 +601,18 @@ class MultiBoxLoss(nn.Module):
 
             # Store
             true_classes[i] = label_for_each_prior
+            #print(torch.sum(label_for_each_prior))
 
             # Encode center-size object coordinates into the form we regressed predicted boxes to
             true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
 
         # Identify priors that are positive (object/non-background)
         positive_priors = true_classes != 0  # (N, 8732)
+        #print(torch.sum(positive_priors))
 
         # LOCALIZATION LOSS
-
+        #print(predicted_locs[positive_priors])
+        #print(true_locs[positive_priors])
         # Localization loss is computed only over positive (non-background) priors
         loc_loss = self.smooth_l1(predicted_locs[positive_priors], true_locs[positive_priors])  # (), scalar
 
@@ -624,6 +629,7 @@ class MultiBoxLoss(nn.Module):
         # Number of positive and hard-negative priors per image
         n_positives = positive_priors.sum(dim=1)  # (N)
         n_hard_negatives = self.neg_pos_ratio * n_positives  # (N)
+    
 
         # First, find the loss for all priors
         conf_loss_all = self.cross_entropy(predicted_scores.view(-1, n_classes), true_classes.view(-1))  # (N * 8732)
@@ -645,5 +651,4 @@ class MultiBoxLoss(nn.Module):
         conf_loss = (conf_loss_hard_neg.sum() + conf_loss_pos.sum()) / n_positives.sum().float()  # (), scalar
 
         # TOTAL LOSS
-
-        return conf_loss + self.alpha * loc_loss
+        return  self.alpha * loc_loss # + conf_loss 
