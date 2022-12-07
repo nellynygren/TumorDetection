@@ -5,15 +5,24 @@ import torch.utils.data
 from model import SSD300, MultiBoxLoss
 from datasets import BrainDataset, PascalVOCDataset
 from utils import *
+from torch.utils.tensorboard import SummaryWriter
+
+thresh = 0.5
+negpos = 3
+
+writer = SummaryWriter('runs/attempt_training')
+
 
 # Data parameters
-data_folder = '../TumorDetection/tumor_detect/input/brain-tumor-object-detection-datasets/axial_t1wce_2_class/'  # folder with data files
+data_folder = '/home/stud/n/nelnyg22/TumorDetection/tumor_detect/input/brain-tumor-object-detection-datasets/axial_t1wce_2_class/'  # folder with data files
 keep_difficult = False  # use objects considered difficult to detect?
 
 # Model parameters
 # Not too many here since the SSD300 has a very specific structure
-n_classes = len(label_map)  # number of different types of objects
+n_classes = 2 #len(label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(n_classes)
+print(device)
 
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
@@ -62,7 +71,7 @@ def main():
 
     # Move to default device
     model = model.to(device)
-    criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
+    criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy,threshold = thresh,neg_pos_ratio = negpos).to(device)
 
     # Custom dataloaders
     # train_dataset = PascalVOCDataset(data_folder,
@@ -70,9 +79,15 @@ def main():
     #                                  keep_difficult=keep_difficult)
     train_dataset = BrainDataset(data_folder,
                                      split='train',
-                                     keep_difficult=keep_difficult)                            
+                                     keep_difficult=keep_difficult)        
+    validation_dataset = BrainDataset(data_folder,
+                                     split='val',
+                                     keep_difficult=keep_difficult) 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
+                                               pin_memory=True)  # note that we're passing the collate function here
+    validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=29, shuffle=True,
+                                               collate_fn=validation_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
     # Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
@@ -93,13 +108,14 @@ def main():
               model=model,
               criterion=criterion,
               optimizer=optimizer,
-              epoch=epoch)
+              epoch=epoch,
+              validation_loader=validation_loader)
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, validation_loader):
     """
     One epoch's training.
 
@@ -145,11 +161,23 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         losses.update(loss.item(), images.size(0))
         batch_time.update(time.time() - start)
-
+        
         start = time.time()
 
+        writer.add_scalar('Loss/train',loss.item(),epoch)
+        
         # Print status
         if i % print_freq == 0:
+            model.eval()
+            for i, (images_val, boxes_val, labels_val, _) in enumerate(validation_loader):
+                # Move to default device
+                images_val = images_val.to(device)  # (batch_size (N), 3, 300, 300)
+                boxes_val = [b.to(device) for b in boxes_val]
+                labels_val = [l.to(device) for l in labels_val]
+            predicted_locs_val, predicted_scores_val = model(images_val)
+            val_loss = criterion(predicted_locs_val, predicted_scores_val, boxes_val, labels_val)  # scalar
+            writer.add_scalar('Loss/validation',val_loss.item(),epoch)
+            model.train()
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t'

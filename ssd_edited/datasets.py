@@ -1,5 +1,5 @@
 #from re import T
-from select import kevent
+#from select import kevent
 import torch
 from torch.utils.data import Dataset
 import json
@@ -108,13 +108,16 @@ class BrainDataset(Dataset):
         """
         self.split = split.lower()
 
-        assert self.split in {'train', 'test'}
+        assert self.split in {'train', 'val', 'test'}
 
         self.data_folder = data_folder
         self.keep_difficult = keep_difficult
 
         train_im_path = data_folder + 'images/train/'
         train_label_path = data_folder + 'labels/train/'
+        
+        val_im_path = data_folder + 'images/val/'
+        val_label_path = data_folder + 'labels/val/'
 
         test_im_path = data_folder + 'images/test/'
         test_label_path = data_folder + 'labels/test/'
@@ -131,6 +134,9 @@ class BrainDataset(Dataset):
         if self.split == 'train':
             self.images = [os.path.join(train_im_path,im_file) for im_file in os.listdir(train_im_path) if not im_file.startswith('.')]
             self.objects = [os.path.join(train_label_path,im_file) for im_file in os.listdir(train_label_path) if not im_file.startswith('.')]
+        elif self.split == 'val':
+            self.images = [os.path.join(val_im_path,im_file) for im_file in os.listdir(val_im_path)]
+            self.objects = [os.path.join(val_label_path,im_file) for im_file in os.listdir(val_label_path)]
         else:
             self.images = [os.path.join(test_im_path,im_file) for im_file in os.listdir(test_im_path)]
             self.objects = [os.path.join(test_label_path,im_file) for im_file in os.listdir(test_label_path)]
@@ -169,7 +175,7 @@ class BrainDataset(Dataset):
             bb_max_x = line[2]*im_sz_x + bb_sz_x
             bb_max_y = line[1]*im_sz_y + bb_sz_y
             bb[l_i,:] = [bb_min_x,bb_min_y,bb_max_x,bb_max_y]
-            labels.append(0)
+            labels.append(1)
 
         difficulties = np.zeros((1,len(labels)))
 
@@ -211,9 +217,16 @@ class BrainDataset(Dataset):
         #image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
 
         image, boxes = resize(image, boxes, dims=(300, 300))
+        
+        
 
         tens_transf = T.ToTensor()
         image = tens_transf(image)
+        
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
+        
+        image = T.functional.normalize(image, mean=mean, std=std)
 
         return image, boxes, labels, difficulties
 
