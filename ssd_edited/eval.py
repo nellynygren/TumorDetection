@@ -1,5 +1,5 @@
 from utils import *
-from datasets import PascalVOCDataset
+from datasets import BrainDataset
 from tqdm import tqdm
 from pprint import PrettyPrinter
 
@@ -7,11 +7,12 @@ from pprint import PrettyPrinter
 pp = PrettyPrinter()
 
 # Parameters
-data_folder = './'
+data_folder = '/home/stud/n/nelnyg22/TumorDetection/tumor_detect/input/brain-tumor-object-detection-datasets/axial_t1wce_2_class/'  # folder with data files
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
 batch_size = 64
 workers = 4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 checkpoint = './checkpoint_ssd300.pth.tar'
 
 # Load model checkpoint that is to be evaluated
@@ -23,11 +24,18 @@ model = model.to(device)
 model.eval()
 
 # Load test data
-test_dataset = PascalVOCDataset(data_folder,
-                                split='test',
-                                keep_difficult=keep_difficult)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
-                                          collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
+#test_dataset = PascalVOCDataset(data_folder,
+#                                split='test',
+#                                keep_difficult=keep_difficult)
+#test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
+#                                          collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
+
+test_dataset = BrainDataset(data_folder,
+                                     split='test',
+                                     keep_difficult=keep_difficult) 
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                           collate_fn=test_dataset.collate_fn, num_workers=workers,
+                                           pin_memory=True)  # note that we're passing the collate function here
 
 
 def evaluate(test_loader, model):

@@ -27,7 +27,7 @@ print(device)
 # Learning parameters
 checkpoint = None  # path to model checkpoint, None if none
 batch_size = 8  # batch size
-iterations = 120000  # number of iterations to train
+iterations = 10000000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
 print_freq = 200  # print training status every __ batches
 lr = 1e-3  # learning rate

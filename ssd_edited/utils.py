@@ -8,9 +8,12 @@ import torchvision.transforms.functional as FT
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Label map
-voc_labels = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
-              'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
-label_map = {k: v + 1 for v, k in enumerate(voc_labels)}
+#voc_labels = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
+#              'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
+#label_map = {k: v + 1 for v, k in enumerate(voc_labels)}
+
+brain_labels = ('T')
+label_map = {k: v + 1 for v, k in enumerate(brain_labels)}
 label_map['background'] = 0
 rev_label_map = {v: k for k, v in label_map.items()}  # Inverse mapping
 
@@ -156,9 +159,10 @@ def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, tr
     :param true_difficulties: list of tensors, one tensor for each image containing actual objects' difficulty (0 or 1)
     :return: list of average precisions for all classes, mean average precision (mAP)
     """
+    #print([len(det_boxes),len(det_labels),len(det_scores),len(true_boxes),len(true_labels), len(true_difficulties),len(label_map)])
     assert len(det_boxes) == len(det_labels) == len(det_scores) == len(true_boxes) == len(
-        true_labels) == len(
-        true_difficulties)  # these are all lists of tensors of the same length, i.e. number of images
+        true_labels)# == len(
+        #true_difficulties)  # these are all lists of tensors of the same length, i.e. number of images
     n_classes = len(label_map)
 
     # Store all (true) objects in a single continuous tensor while keeping track of the image it is from
@@ -332,7 +336,8 @@ def gcxgcy_to_cxcy(gcxgcy, priors_cxcy):
     :param priors_cxcy: prior boxes with respect to which the encoding is defined, a tensor of size (n_priors, 4)
     :return: decoded bounding boxes in center-size form, a tensor of size (n_priors, 4)
     """
-
+    gcxgcy = gcxgcy.to(device)
+    priors_cxcy = priors_cxcy.to(device)
     return torch.cat([gcxgcy[:, :2] * priors_cxcy[:, 2:] / 10 + priors_cxcy[:, :2],  # c_x, c_y
                       torch.exp(gcxgcy[:, 2:] / 5) * priors_cxcy[:, 2:]], 1)  # w, h
 

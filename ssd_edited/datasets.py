@@ -36,7 +36,6 @@ class PascalVOCDataset(Dataset):
         #with open(os.path.join(data_folder, self.split + '_images.json'), 'r') as j:
         with open(os.path.join(data_folder, 'images/', self.split), 'r') as j:
             self.images = json.load(j)
-            print(self.images)
         with open(os.path.join(data_folder, 'labels/', self.split), 'r') as j:
             self.objects = json.load(j)
 
@@ -133,13 +132,13 @@ class BrainDataset(Dataset):
         # Get list om images and objects
         if self.split == 'train':
             self.images = [os.path.join(train_im_path,im_file) for im_file in os.listdir(train_im_path) if not im_file.startswith('.')]
-            self.objects = [os.path.join(train_label_path,im_file) for im_file in os.listdir(train_label_path) if not im_file.startswith('.')]
+            self.objects = [os.path.join(train_label_path,obj_file) for obj_file in os.listdir(train_label_path) if not obj_file.startswith('.')]
         elif self.split == 'val':
-            self.images = [os.path.join(val_im_path,im_file) for im_file in os.listdir(val_im_path)]
-            self.objects = [os.path.join(val_label_path,im_file) for im_file in os.listdir(val_label_path)]
+            self.images = [os.path.join(val_im_path,im_file) for im_file in os.listdir(val_im_path) if not im_file.startswith('.')]
+            self.objects = [os.path.join(val_label_path,obj_file) for obj_file in os.listdir(val_label_path) if not obj_file.startswith('.')]
         else:
-            self.images = [os.path.join(test_im_path,im_file) for im_file in os.listdir(test_im_path)]
-            self.objects = [os.path.join(test_label_path,im_file) for im_file in os.listdir(test_label_path)]
+            self.images = [os.path.join(test_im_path,im_file) for im_file in os.listdir(test_im_path) if not im_file.startswith('.')]
+            self.objects = [os.path.join(test_label_path,obj_file) for obj_file in os.listdir(test_label_path) if not obj_file.startswith('.')]
 
         self.images = sorted(self.images)
         self.objects = sorted(self.objects)
@@ -177,8 +176,9 @@ class BrainDataset(Dataset):
             bb[l_i,:] = [bb_min_x,bb_min_y,bb_max_x,bb_max_y]
             labels.append(1)
 
-        difficulties = np.zeros((1,len(labels)))
-
+        difficulties = np.zeros((len(labels),1))
+        difficulties = torch.ByteTensor(difficulties)  # (n_objects)
+        
         image, bb = self.pad2square(image, bb)
         
         
@@ -254,7 +254,7 @@ class BrainDataset(Dataset):
             images.append(b[0])
             boxes.append(b[1])
             labels.append(b[2])
-            #difficulties.append(b[3])
+            difficulties.append(b[3])
 
         images = torch.stack(images, dim=0)
 
