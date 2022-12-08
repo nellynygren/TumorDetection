@@ -9,7 +9,7 @@ pp = PrettyPrinter()
 # Parameters
 data_folder = '/home/stud/n/nelnyg22/TumorDetection/tumor_detect/input/brain-tumor-object-detection-datasets/axial_t1wce_2_class/'  # folder with data files
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-batch_size = 64
+batch_size = 5 # 64
 workers = 4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -92,5 +92,9 @@ def evaluate(test_loader, model):
     print('\nMean Average Precision (mAP): %.3f' % mAP)
 
 
+
+
+    
+    
 if __name__ == '__main__':
     evaluate(test_loader, model)
