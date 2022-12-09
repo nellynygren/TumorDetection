@@ -10,7 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 thresh = 0.5
 negpos = 3
 
-writer = SummaryWriter('runs/attempt_training')
+writer = SummaryWriter('runs/lr1e1_bs10_thr05_negpos3')
 
 
 # Data parameters
@@ -21,15 +21,14 @@ keep_difficult = False  # use objects considered difficult to detect?
 # Not too many here since the SSD300 has a very specific structure
 n_classes = 2 #len(label_map)  # number of different types of objects
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(n_classes)
 print(device)
 
 # Learning parameters
-checkpoint = None  # path to model checkpoint, None if none
-batch_size = 8  # batch size
-iterations = 10000000  # number of iterations to train
+checkpoint = None #'./checkpoint_ssd300.pth.tar'  # path to model checkpoint, None if none
+batch_size = 20  # batch size
+iterations = 100000  # number of iterations to train
 workers = 4  # number of workers for loading data in the DataLoader
-print_freq = 200  # print training status every __ batches
+print_freq = 100  # print training status every __ batches
 lr = 1e-3  # learning rate
 decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
 decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
@@ -113,6 +112,7 @@ def main():
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
+        print("Saved checkpoint")
 
 
 def train(train_loader, model, criterion, optimizer, epoch, validation_loader):
@@ -181,9 +181,10 @@ def train(train_loader, model, criterion, optimizer, epoch, validation_loader):
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Batch Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(epoch, i, len(train_loader),
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Val loss {val_loss:.4f}\t'.format(epoch, i, len(train_loader),
                                                                   batch_time=batch_time,
-                                                                  data_time=data_time, loss=losses))
+                                                                  data_time=data_time, loss=losses,val_loss=val_loss))
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
 

@@ -13,7 +13,7 @@ from PIL import ImageOps
 # Parameters
 data_folder = '/home/stud/n/nelnyg22/TumorDetection/tumor_detect/input/brain-tumor-object-detection-datasets/axial_t1wce_2_class/'  # folder with data files
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-batch_size = 10
+batch_size = 5
 workers = 4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -25,7 +25,7 @@ model = checkpoint['model']
 model = model.to(device)
 
 test_dataset = BrainDataset(data_folder,
-                                     split='test',
+                                     split='train',
                                      keep_difficult=keep_difficult) 
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
                                            collate_fn=test_dataset.collate_fn, num_workers=workers,
@@ -46,7 +46,7 @@ def plot_batch(test_loader,model):
 
     # Detect objects in SSD output
     det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
-                                                                               min_score=0.2, max_overlap=0.45,
+                                                                               min_score=0.8, max_overlap=0.99,
                                                                                top_k=1)
     # Evaluation MUST be at min_score=0.01, max_overlap=0.45, top_k=200 for fair comparision with the paper's results and other repos
 
@@ -107,6 +107,9 @@ def plot_batch(test_loader,model):
             bb_plot = patches.Rectangle((bb_pos_y, bb_pos_x), bb_sz_y, bb_sz_x, linewidth=1, edgecolor='r', facecolor='None')
             # Add the patch to the Axes
             ax.add_patch(bb_plot)
+        conf_score = det_scores_batch[0].item()
+        class_pred = det_labels_batch[0].item()
+        ax.set_title('Conf: {0:.1f}, class: {1:.0f}'.format(conf_score,class_pred),fontsize=7)
 
     plt.savefig('./figures/plot_test_batch')
     
