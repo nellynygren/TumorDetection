@@ -4,6 +4,9 @@ import torch
 import random
 import xml.etree.ElementTree as ET
 import torchvision.transforms.functional as FT
+import torchvision.transforms as T
+import numpy
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -144,6 +147,24 @@ def decimate(tensor, m):
 
     return tensor
 
+def calculate_best_box_accuracy(det_boxes, det_labels, det_scores, true_boxes, true_labels):
+
+    
+    #det_boxes = det_boxes.item()
+    #det_boxes = det_boxes.unsqueeze(0)
+    
+    det_boxes = torch.tensor([det_box[0].tolist() for det_box in det_boxes])
+    det_boxes = det_boxes.to(device)
+    
+    #true_boxes = torch.cat(true_boxes, dim=0)
+    #true_boxes = true_boxes.item()
+    #true_boxes = true_boxes.unsqueeze(0)
+    
+    true_boxes = torch.tensor([true_box[0].tolist() for true_box in true_boxes])
+    true_boxes = true_boxes.to(device)
+    best_box_accuracy = find_jaccard_overlap(det_boxes, true_boxes)
+        
+    return best_box_accuracy
 
 def calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties):
     """
