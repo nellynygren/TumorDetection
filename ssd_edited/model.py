@@ -655,4 +655,4 @@ class MultiBoxLoss(nn.Module):
         conf_weight = 1 / (self.alpha+1)
         
         # TOTAL LOSS
-        return conf_weight* conf_loss + loc_weight * loc_loss
+        return conf_loss + self.alpha * loc_loss

@@ -28,7 +28,7 @@ model.eval()
 model = model.to(device)
 
 test_dataset = BrainDataset(data_folder,
-                                     split='train',
+                                     split='test',
                                      keep_difficult=keep_difficult) 
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
                                            collate_fn=test_dataset.collate_fn, num_workers=workers,

@@ -571,7 +571,8 @@ def resize(image, boxes, dims=(300, 300), return_percent_coords=True):
     if not return_percent_coords:
         new_dims = torch.FloatTensor([dims[1], dims[0], dims[1], dims[0]]).unsqueeze(0)
         new_boxes = new_boxes * new_dims
-
+    #print(boxes)
+    #print(new_boxes)
     return new_image, new_boxes
 
 
@@ -617,7 +618,7 @@ def transform(image, boxes, labels, difficulties, split):
     :param split: one of 'TRAIN' or 'TEST', since different sets of transformations are applied
     :return: transformed image, transformed bounding box coordinates, transformed labels, transformed difficulties
     """
-    assert split in {'TRAIN', 'TEST'}
+    assert split.upper() in {'TRAIN', 'VAL', 'TEST'}
 
     # Mean and standard deviation of ImageNet data that our base VGG from torchvision was trained on
     # see: https://pytorch.org/docs/stable/torchvision/models.html
@@ -630,6 +631,7 @@ def transform(image, boxes, labels, difficulties, split):
     new_difficulties = difficulties
     # Skip the following operations for evaluation/testing
     if split == 'TRAIN':
+        x=0
         # A series of photometric distortions in random order, each with 50% chance of occurrence, as in Caffe repo
         new_image = photometric_distort(new_image)
 
@@ -653,7 +655,7 @@ def transform(image, boxes, labels, difficulties, split):
             new_image, new_boxes = flip(new_image, new_boxes)
 
     # Resize image to (300, 300) - this also converts absolute boundary coordinates to their fractional form
-    new_image, new_boxes = resize(new_image, new_boxes, dims=(300, 300))
+    new_image, new_boxes = resize(new_image, new_boxes, dims=(300, 300),return_percent_coords=True)
 
     # Convert PIL image to Torch tensor
     new_image = FT.to_tensor(new_image)
